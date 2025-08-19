@@ -17,4 +17,21 @@ The game is being developed in PICO-8, with features like:
 1. Clone the repo:
    ```sh
    git clone https://github.com/YOURUSERNAME/PicoRPG.git
+2. Open the cart in PICO-8
+   ```pico8 run rpg.p8
+## Controls
 
+- D-Pad — Move  
+- X / ❎ — Confirm / Attack  
+- Z / 🅾️ — Cancel / Back  
+
+## How to Play
+
+- Explore the overworld and enter battles.  
+- When an enemy is charging a spell, cast **Absorb**.  
+  If successful, you permanently learn that spell.  
+
+## Development Notes
+
+- The cart is tracked as a `.p8` text file for clean diffs.  
+- Optional exports (like `.p8.png` / web builds) can be ignored via `.gitignore`.  
