@@ -18,7 +18,9 @@ The game is being developed in PICO-8, with features like:
    ```sh
    git clone https://github.com/YOURUSERNAME/PicoRPG.git
 2. Open the cart in PICO-8
-   ```pico8 run rpg.p8
+   ```sh
+   pico8 run rpg.p8
+
 ## Controls
 
 - D-Pad — Move  
