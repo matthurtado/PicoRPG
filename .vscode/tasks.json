@@ -1,0 +1,91 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Clean build & dist",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force build, dist | Out-Null"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Pico-8 cart",
+            "type": "process",
+            "command": "py",
+            "args": ["tools\\build_cart.py"],
+            "dependsOn": [
+                "Clean build & dist"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Export PNG",
+            "type": "shell",
+            "command": "C:\\Program Files (x86)\\PICO-8\\pico8.exe",
+            "args": [
+                "-export",
+                "dist/rpg.png",
+                "build/rpg.p8"
+            ],
+            "dependsOn": [
+                "Build Pico-8 cart"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Export HTML",
+            "type": "shell",
+            "command": "C:\\Program Files (x86)\\PICO-8\\pico8.exe",
+            "args": [
+                "-export",
+                "dist/rpg.html",
+                "build/rpg.p8"
+            ],
+            "dependsOn": [
+                "Build Pico-8 cart"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build & Export All",
+            "dependsOn": [
+                "Clean build & dist",
+                "Build Pico-8 cart",
+                "Export PNG",
+                "Export HTML"
+            ],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Run Pico-8",
+            "type": "shell",
+            "command": "C:\\Program Files (x86)\\PICO-8\\pico8.exe",
+            "args": [
+                "build/rpg.p8"
+            ],
+            "dependsOn": [
+                "Build Pico-8 cart"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Edit base.p8",
+            "type": "shell",
+            "command": "C:\\Program Files (x86)\\PICO-8\\pico8.exe",
+            "args": [
+                "assets/base.p8"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

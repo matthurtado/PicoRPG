@@ -3,3 +3,13 @@
 *.html
 *.js
 *.wasm
+
+# ignore build
+/build/
+/dist/
+
+# ignore .vscode
+.vscode/*
+
+# except
+!.vscode/tasks.json
