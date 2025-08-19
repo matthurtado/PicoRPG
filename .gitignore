@@ -1,0 +1,5 @@
+# ignore exports
+*.p8.png
+*.html
+*.js
+*.wasm
