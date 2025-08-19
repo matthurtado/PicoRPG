@@ -16,17 +16,9 @@
         },
         {
             "label": "Build Pico-8 cart",
-            "type": "shell",
-            "command": "p8tool",
-            "args": [
-                "build",
-                "build/rpg.p8",
-                "--lua", "src/main.lua",
-                "--gfx", "assets/base.p8",
-                "--map", "assets/base.p8",
-                "--sfx", "assets/base.p8",
-                "--music", "assets/base.p8"
-            ],
+            "type": "process",
+            "command": "py",
+            "args": ["tools\\build_cart.py"],
             "dependsOn": [
                 "Clean build & dist"
             ],
@@ -83,6 +75,15 @@
             ],
             "dependsOn": [
                 "Build Pico-8 cart"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Edit base.p8",
+            "type": "shell",
+            "command": "C:\\Program Files (x86)\\PICO-8\\pico8.exe",
+            "args": [
+                "assets/base.p8"
             ],
             "problemMatcher": []
         }

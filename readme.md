@@ -33,52 +33,39 @@ The game is being developed in PICO-8, with features like:
 - When an enemy is charging a spell, cast **Absorb**.  
   If successful, you permanently learn that spell.  
 
-## Development Notes
 
-### VS Code Tasks for Pico-8 Development
+# PicoRPG Build & Run
 
-This project includes a set of [VS Code build tasks](.vscode/tasks.json) to make it easy to compile, run, and export the game.
+This project uses **VS Code tasks** and [picotool](https://github.com/dansanderson/picotool) to build and run a Pico-8 game from multiple Lua source files.
 
-### Available Tasks
+## Prerequisites
 
-- **Ensure build & dist**  
-  Utility task to make sure the `build/` and `dist/` directories exist (this runs automatically before a build).
+- [Pico-8](https://www.lexaloffle.com/pico-8.php) installed
+- Python 3.8+ installed and on PATH
+- Install picotool:
 
-- **Build Pico-8 cart**  
-  Compiles `src/main.lua` together with assets from `assets/base.p8` into `build/rpg.p8`.
+```powershell
+py -m pip install git+https://github.com/dansanderson/picotool.git
+```
 
-- **Run Pico-8**  
-  Launches Pico-8 with the freshly built cart for testing.
+## VS Code Tasks
 
-- **Export PNG / Export HTML**  
-  Exports the cart to `dist/rpg.png` (cartridge image) or `dist/rpg.html` (embeddable HTML5).
+Open the Command Palette → `Tasks: Run Task`.
 
-- **Build & Export All**  
-  Builds the cart, then exports both PNG and HTML in one step.
+- **Build**  
+  Merges your Lua sources (e.g. `src/main.lua`, `src/scenes/...`) into `build/_merged.lua`, then injects them into a cartridge using `assets/base.p8`.
 
+- **Run**  
+  Launches Pico-8 with the built cartridge (`build/rpg.p8`).
 
-### How to Use
+## base.p8
 
-1. Open the command palette (**Ctrl+Shift+P** / **⌘⇧P**) → “Tasks: Run Task” or press **Ctrl+Shift+B** to run the default build.
-2. Select the task you want to run.
-3. Outputs go to:
-   - `build/rpg.p8` – compiled cart
-   - `dist/` – exported PNG/HTML
+The build system uses `assets/base.p8` as a template cartridge that should only contain the art/music/maps/etc. When modifying any of these, open this base.p8 project in the Pico-8 editor, make your changes there, then save it in the same editor.
 
-### Mojibake / Unicode Issue
+## Encoding / Mojibake Note
 
-If you see special characters like `▶`, `❎`, or `🅾️` appear as nonsense symbols (e.g. `ヌえ`, `ユか✽`), that’s because the Windows build tool (`p8tool.exe`) was defaulting to the system ANSI code page instead of UTF-8.
-
-#### Fix
-
-Set Windows to use UTF-8 for non-Unicode programs:
-
-1. Open **Settings → Time & Language → Language & Region → Administrative language settings**
-2. Click **Change system locale…**
-3. Check **“Beta: Use Unicode UTF-8 for worldwide language support”**
-4. Reboot
-
-After enabling this, the build tasks will preserve all Unicode symbols correctly in your Pico-8 cart.
+If you see strange characters (e.g. `(ヌえ🅾️)` instead of `🅾️`), this comes from hidden Unicode variation selectors.  
+The build process strips these automatically when generating `_merged.lua` so the game runs correctly in Pico-8.
 
 ---
 
