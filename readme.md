@@ -1,6 +1,6 @@
 # PicoRPG
 
-A Dragon Quest–inspired RPG built in [PICO-8](https://www.lexaloffle.com/pico-8.php).
+A mini-RPG built in [PICO-8](https://www.lexaloffle.com/pico-8.php).
 
 ## 🎮 About
 
