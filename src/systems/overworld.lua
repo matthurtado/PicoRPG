@@ -17,6 +17,12 @@ local function is_blocked(px,py)
   return fget(mget(tx,ty),0) -- Flag 0 = solid
 end
 
+local function is_safe(px, py)
+  local tx, ty = flr(px/8), flr(py/8)
+  local tile = mget(tx, ty)
+  return not fget(tile, 1) -- Flag 1 = not safe
+end
+
 local function random_enemy()
   -- clone the enemy so battle can mutate it
   local list=STATE.enemies
@@ -31,7 +37,6 @@ local function random_enemy()
 end
 
 local function try_encounter()
-  
   if STATE.enc_cool>0 then return end
   local h=STATE.hero
   local tx,ty=flr(h.x/8), flr(h.y/8)
@@ -77,7 +82,10 @@ function SYS.overworld.update()
     if h.x==h.tx and h.y==h.ty then
       h.moving=false
       STATE.steps += 1
-      try_encounter()
+      -- only roll encounters on tiles marked "not safe" (flag 1 set)
+      if not is_safe(h.x, h.y) then
+        try_encounter()
+      end
     end
   end
 
