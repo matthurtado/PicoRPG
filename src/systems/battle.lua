@@ -50,39 +50,55 @@ function SYS.battle.update()
     return
   end
 
-  -- ===== main menu =====
-  if b.state=="menu" then
-    local moved=false
-    -- read arrows directly to avoid helper mismatches
-    if btnp(2) then b.cursor=(b.cursor-2)%3+1 moved=true end -- up
-    if btnp(3) then b.cursor=(b.cursor  )%3+1 moved=true end -- down
+-- ===== main menu =====
+if b.state=="menu" then
+  -- 2x2 grid: [1]=fight [2]=spell
+  --           [3]=run   [4]=defend
+  -- arrows: clamp within grid (no wrap)
+  if btnp(0) then -- left
+    if (b.cursor%2==0) then b.cursor-=1 end
+  end
+  if btnp(1) then -- right
+    if (b.cursor%2==1) then b.cursor+=1 end
+  end
+  if btnp(2) then -- up
+    if (b.cursor>2) then b.cursor-=2 end
+  end
+  if btnp(3) then -- down
+    if (b.cursor<=2) then b.cursor+=2 end
+  end
 
-    if (not moved) and SYS.input.confirm() then
-      if b.cursor==1 then
-        -- fight (basic attack)
-        local dmg=max(1, hero.atk - b.enemy.def + flr(rnd(3))-1)
-        b.enemy.hp -= dmg
-        if b.enemy.hp<=0 then
-          b.enemy.hp=0
-          say(b, { "you hit for "..dmg.."!", "the "..b.enemy.name.." is defeated!" }, "victory")
-        else
-          say(b, "you hit for "..dmg.."!", "e_act")
-        end
-
-      elseif b.cursor==2 then
-        -- open spell submenu
-        b.state="spell_menu"
-        b.spell_i = b.spell_i or 1
-
+  if SYS.input.confirm() then
+    if b.cursor==1 then
+      -- fight (basic attack)
+      local dmg=max(1, hero.atk - b.enemy.def + flr(rnd(3))-1)
+      b.enemy.hp -= dmg
+      if b.enemy.hp<=0 then
+        b.enemy.hp=0
+        say(b, { "you hit for "..dmg.."!", "the "..b.enemy.name.." is defeated!" }, "victory")
       else
-        -- run
-        if rnd()<0.5 then
-          say(b, "you got away!", "escape")
-        else
-          say(b, "can't escape!", "e_act")
-        end
+        say(b, "you hit for "..dmg.."!", "e_act")
       end
+
+    elseif b.cursor==2 then
+      -- open spell submenu
+      b.state="spell_menu"
+      b.spell_i = b.spell_i or 1
+
+    elseif b.cursor==3 then
+      -- run
+      if rnd()<0.5 then
+        say(b, "you got away!", "escape")
+      else
+        say(b, "can't escape!", "e_act")
+      end
+
+    elseif b.cursor==4 then
+      -- defend: halve next incoming damage, persists until you're hit
+      hero.defending = true
+      say(b, "you brace for impact!", "e_act")
     end
+  end
 
   -- ===== spell menu =====
   elseif b.state=="spell_menu" then
@@ -154,9 +170,20 @@ function SYS.battle.update()
       e.charging=false
       local sp=e.spell
       local dmg=max(1, (sp and sp.pow or 0) + flr(rnd(3)) - hero.def)
+
+      -- defend halves next hit, then clears
+      local defended = false
+      if hero.defending then
+        local nd = max(1, flr(dmg/2))
+        if nd < dmg then defended = true end
+        dmg = nd
+        hero.defending = false
+      end
+
       hero.hp-=dmg
 
       local msgs={ e.name.." casts "..(sp and sp.name or "a spell").."!", "it hits for "..dmg.."!" }
+      if defended then add(msgs, "you blocked some damage!") end
 
       -- resolve absorb learn (if primed on the previous hero turn)
       if b.absorb_ready and sp then
@@ -192,6 +219,13 @@ function SYS.battle.update()
 
     -- normal attack
     local dmg=max(1, e.atk - hero.def + flr(rnd(3))-1)
+
+    -- defend halves next hit, then clears
+    if hero.defending then
+      dmg = max(1, flr(dmg/2))
+      hero.defending = false
+    end
+
     hero.hp-=dmg
     if hero.hp<=0 then
       hero.hp=0
@@ -283,15 +317,18 @@ function SYS.battle.draw()
   rect(0, box_y, 127, 127, 0)
 
   if b.state=="menu" then
-    if draw_list then
-      draw_list({"fight","spell","run"}, b.cursor, 6, box_y+4)
-    else
-      -- minimal fallback if draw_list is not defined
-      local opts={"fight","spell","run"}
-      for i=1,3 do
-        local yy = box_y+4+(i-1)*8
-        local sel = (i==b.cursor)
-        print((sel and "▶ " or "  ")..opts[i], 6, yy, sel and 7 or 6)
+    local opts={"fight","spell","run","defend"}
+    for i=1,4 do
+      local col = (i-1)%2
+      local row = flr((i-1)/2)
+      local ix  = 6 + col*60
+      local iy  = box_y + 4 + row*10
+      local sel = (i==b.cursor)
+      if sel then
+        rectfill(ix-2, iy-1, ix+44, iy+7, 5)
+        print(opts[i], ix, iy, 7)
+      else
+        print(opts[i], ix, iy, 6)
       end
     end
 
