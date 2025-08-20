@@ -1,5 +1,5 @@
 # ignore exports
-*.p8.png
+*.png
 *.html
 *.js
 *.wasm
