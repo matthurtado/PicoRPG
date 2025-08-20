@@ -24,13 +24,6 @@ function SYS.battle.start(enemy_tpl)
   STATE.gamestate = "battle"
 end
 
-local function spell_mult_vs_enemy(enemy, spell_name)
-  local m = 1.0
-  if SYS.util.list_has(enemy.weaknesses,  spell_name) then m = m * 2.0 end
-  if SYS.util.list_has(enemy.resistances, spell_name) then m = m * 0.5 end
-  return m
-end
-
 function SYS.battle.update()
   local b = STATE.battle
   if not b then return end
@@ -71,7 +64,7 @@ if b.state=="menu" then
   if SYS.input.confirm() then
     if b.cursor==1 then
       -- fight (basic attack)
-      local dmg=max(1, hero.atk - b.enemy.def + flr(rnd(3))-1)
+      local dmg = SYS.battle.damage.physical(hero, b.enemy)
       b.enemy.hp -= dmg
       if b.enemy.hp<=0 then
         b.enemy.hp=0
@@ -87,14 +80,14 @@ if b.state=="menu" then
 
     elseif b.cursor==3 then
       -- run
-      if rnd()<0.5 then
+      if SYS.battle.can_escape(hero, b.enemy) then
         say(b, "you got away!", "escape")
       else
         say(b, "can't escape!", "e_act")
       end
 
     elseif b.cursor==4 then
-      -- defend: halve next incoming damage, persists until you're hit
+      -- defend
       hero.defending = true
       say(b, "you brace for impact!", "e_act")
     end
@@ -138,9 +131,7 @@ if b.state=="menu" then
       else
         -- generic attack spell with weaknesses/resistances
         hero.mp -= cost
-        local base = max(1, (s.pow or 0) + flr(rnd(3)) - b.enemy.def)
-        local mult = spell_mult_vs_enemy(b.enemy, s.name) -- assumes your helper exists
-        local dmg  = max(1, flr(base * mult))
+        local dmg, mult = SYS.battle.damage.spell(s, b.enemy)
 
         b.enemy.hp -= dmg
 
@@ -169,12 +160,12 @@ if b.state=="menu" then
       -- spell goes off now
       e.charging=false
       local sp=e.spell
-      local dmg=max(1, (sp and sp.pow or 0) + flr(rnd(3)) - hero.def)
+      local dmg,_ = SYS.battle.damage.spell(sp,hero)
 
       -- defend halves next hit, then clears
       local defended = false
       if hero.defending then
-        local nd = max(1, flr(dmg/2))
+        local nd = SYS.battle.damage.defend(dmg)
         if nd < dmg then defended = true end
         dmg = nd
         hero.defending = false
@@ -218,11 +209,11 @@ if b.state=="menu" then
     end
 
     -- normal attack
-    local dmg=max(1, e.atk - hero.def + flr(rnd(3))-1)
+    local dmg = SYS.battle.damage.physical(e, hero)
 
-    -- defend halves next hit, then clears
+    -- defend
     if hero.defending then
-      dmg = max(1, flr(dmg/2))
+      dmg = SYS.battle.damage.defend(dmg)
       hero.defending = false
     end
 

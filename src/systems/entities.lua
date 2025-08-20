@@ -3,7 +3,7 @@ SYS.entities = {}
 function SYS.entities.init()
   STATE.hero = {
     x=48,y=48, dir=2, moving=false, dx=0,dy=0, spd=1,
-    hp=20,max_hp=20, mp=5, atk=4, def=2, lvl=1, xp=0, g=0,
+    hp=20,max_hp=20, mp=10, atk=4, def=2, lvl=1, xp=0, g=0,
     spr=1
   }
 

@@ -10,6 +10,7 @@ __lua__
 #include ../src/systems/menu.lua
 #include ../src/systems/overworld.lua
 #include ../src/systems/battle.lua
+#include ../src/systems/al_gore_ithms.lua
 #include ../src/systems/core.lua
 
 __gfx__
