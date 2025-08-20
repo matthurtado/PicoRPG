@@ -3,8 +3,9 @@ function _init()
   SYS.util = SYS.util or {} -- in case util defines helpers
   -- game state
   STATE.gamestate = "menu"
-  SYS.entities.init()   -- hero/enemies data
-  SYS.spells.init()     -- starting spells (absorb etc.)
+  SYS.entities.spells.init()
+  SYS.entities.hero.init()  -- spells/hero/enemies data
+  SYS.entities.enemies.init()
   SYS.menu.init()
 end
 

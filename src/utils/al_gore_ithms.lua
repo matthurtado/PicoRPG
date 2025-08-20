@@ -2,8 +2,6 @@ function SYS.battle.can_escape(hero, enemy)
     return rnd()<0.5
 end
 
-SYS.battle.damage = {}
-
 function SYS.battle.damage.physical(attacker, defender)
     return max(1, attacker.atk - defender.def + flr(rnd(3))-1)
 end

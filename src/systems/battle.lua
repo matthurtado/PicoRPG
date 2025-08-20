@@ -1,5 +1,3 @@
-SYS.battle = {}
-
 local function say(b, lines, next_state)
   if type(lines)=="string" then lines={lines} end
   b.msgs = lines; b.msg_i=1; b.log=lines[1]; b.next_state=next_state or "menu"; b.state="msg"
@@ -181,7 +179,7 @@ if b.state=="menu" then
         b.absorb_ready=false
         local chance = hero.absorb_chance or 0.5
         if rnd()<chance then
-          if SYS.spells.learn(sp) then
+          if SYS.entities.hero.learn_spell(sp) then
             add(msgs, "you learned "..sp.name.."!")
           else
             add(msgs, "you absorbed it, but learned nothing new.")

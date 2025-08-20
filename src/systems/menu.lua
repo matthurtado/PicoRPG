@@ -1,5 +1,3 @@
-SYS.menu = {}
-
 function SYS.menu.init()
   STATE.menu = {
     cursor=1,

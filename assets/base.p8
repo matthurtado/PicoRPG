@@ -1,17 +1,18 @@
 pico-8 cartridge // http://www.pico-8.com
 version 43
 __lua__
-#include ../src/systems/bootstrap.lua
-#include ../src/systems/util.lua
+#include ../src/core/bootstrap.lua
+#include ../src/utils/util.lua
 #include ../src/systems/input.lua
 #include ../src/systems/ui.lua
-#include ../src/systems/entities.lua
-#include ../src/systems/spells.lua
+#include ../src/entities/spells.lua
+#include ../src/entities/hero.lua
+#include ../src/entities/enemies.lua
 #include ../src/systems/menu.lua
 #include ../src/systems/overworld.lua
 #include ../src/systems/battle.lua
-#include ../src/systems/al_gore_ithms.lua
-#include ../src/systems/core.lua
+#include ../src/utils/al_gore_ithms.lua
+#include ../src/core/main.lua
 
 __gfx__
 00000000007777000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

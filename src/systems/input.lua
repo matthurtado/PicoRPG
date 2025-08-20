@@ -1,6 +1,5 @@
 -- systems/input.lua
 -- input helpers (wrap btn / btnp) with sane repeat for menus
-SYS.input = SYS.input or {}
 
 -- raw directions (held)
 function SYS.input.left()  return btn(0) end

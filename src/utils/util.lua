@@ -1,5 +1,4 @@
 -- utility helpers
-SYS.util = {}
 
 -- clamp a value between min and max
 function SYS.util.clamp(val, min, max)

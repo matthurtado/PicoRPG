@@ -1,5 +1,4 @@
 -- ui helpers (hud, menus, messages)
-SYS.ui = {}
 
 -- draw a simple text box
 function SYS.ui.msgbox(text, x, y, w, h)

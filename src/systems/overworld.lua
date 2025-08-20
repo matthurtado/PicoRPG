@@ -1,5 +1,4 @@
 -- systems/overworld.lua
-SYS.overworld = SYS.overworld or {}
 
 function SYS.overworld.init()
   STATE.map_w = STATE.map_w or 128 
