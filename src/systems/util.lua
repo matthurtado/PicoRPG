@@ -27,3 +27,10 @@ end
 function SYS.util.chance(p)
   return rnd(1) < p
 end
+
+-- check if list contains an element
+function SYS.util.list_has(t, name)
+  if not t then return false end
+  for v in all(t) do if v==name then return true end end
+  return false
+end

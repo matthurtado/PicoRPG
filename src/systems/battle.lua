@@ -24,6 +24,13 @@ function SYS.battle.start(enemy_tpl)
   STATE.gamestate = "battle"
 end
 
+local function spell_mult_vs_enemy(enemy, spell_name)
+  local m = 1.0
+  if SYS.util.list_has(enemy.weaknesses,  spell_name) then m = m * 2.0 end
+  if SYS.util.list_has(enemy.resistances, spell_name) then m = m * 0.5 end
+  return m
+end
+
 function SYS.battle.update()
   local b = STATE.battle
   if not b then return end
@@ -45,9 +52,12 @@ function SYS.battle.update()
 
   -- ===== main menu =====
   if b.state=="menu" then
-    if SYS.input.up()   then b.cursor=max(1,b.cursor-1) end
-    if SYS.input.down() then b.cursor=min(3,b.cursor+1) end
-    if SYS.input.confirm() then
+    local moved=false
+    -- read arrows directly to avoid helper mismatches
+    if btnp(2) then b.cursor=(b.cursor-2)%3+1 moved=true end -- up
+    if btnp(3) then b.cursor=(b.cursor  )%3+1 moved=true end -- down
+
+    if (not moved) and SYS.input.confirm() then
       if b.cursor==1 then
         -- fight (basic attack)
         local dmg=max(1, hero.atk - b.enemy.def + flr(rnd(3))-1)
@@ -81,10 +91,18 @@ function SYS.battle.update()
       say(b,"you know no spells.","menu")
       return
     end
-    if SYS.input.up()   then b.spell_i=(b.spell_i-2)%n+1 end
-    if SYS.input.down() then b.spell_i=(b.spell_i)%n+1 end
-    if SYS.input.cancel() then b.state="menu" return end
-    if SYS.input.confirm() then
+
+    local moved=false
+    b.spell_i = b.spell_i or 1
+    if btnp(2) then b.spell_i=(b.spell_i-2)%n+1 moved=true end -- up
+    if btnp(3) then b.spell_i=(b.spell_i  )%n+1 moved=true end -- down
+
+    if SYS.input.cancel() then
+      b.state="menu"
+      return
+    end
+
+    if (not moved) and SYS.input.confirm() then
       local s=hero.spells[b.spell_i]
       local cost=s.mp or 0
       if hero.mp < cost then
@@ -102,15 +120,27 @@ function SYS.battle.update()
           say(b, "nothing to absorb...", "e_act")
         end
       else
-        -- generic attack spell
+        -- generic attack spell with weaknesses/resistances
         hero.mp -= cost
-        local dmg=max(1, (s.pow or 0) + flr(rnd(3)) - b.enemy.def)
+        local base = max(1, (s.pow or 0) + flr(rnd(3)) - b.enemy.def)
+        local mult = spell_mult_vs_enemy(b.enemy, s.name) -- assumes your helper exists
+        local dmg  = max(1, flr(base * mult))
+
         b.enemy.hp -= dmg
+
+        local lines = { "you cast "..s.name.."!", "it dealt "..dmg.."!" }
+        if mult > 1.0 then
+          add(lines, "it's super effective!")
+        elseif mult < 1.0 then
+          add(lines, "resisted...")
+        end
+
         if b.enemy.hp<=0 then
           b.enemy.hp=0
-          say(b, { "you cast "..s.name.."!", "it dealt "..dmg.."!", "the "..b.enemy.name.." is defeated!" }, "victory")
+          add(lines, "the "..b.enemy.name.." is defeated!")
+          say(b, lines, "victory")
         else
-          say(b, { "you cast "..s.name.."!", "it dealt "..dmg.."!" }, "e_act")
+          say(b, lines, "e_act")
         end
       end
     end
