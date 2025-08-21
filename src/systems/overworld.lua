@@ -8,6 +8,8 @@ function SYS.overworld.init()
   STATE.steps = STATE.steps or 0
   STATE.enc_cool = STATE.enc_cool or 0
   STATE.enc_rate = STATE.enc_rate or 0.08
+  -- EDIT: ensure hero has an animation timer (safe if hero is created elsewhere)
+  if STATE.hero then STATE.hero.anim_t = STATE.hero.anim_t or 0 end
 end
 
 -- helpers
@@ -88,6 +90,14 @@ function SYS.overworld.update()
     end
   end
 
+  -- EDIT: advance / reset walk animation clock
+  h.anim_t = h.anim_t or 0
+  if h.moving then
+    h.anim_t = (h.anim_t + 1) % 8
+  else
+    h.anim_t = 0
+  end
+
   -- keep camera on hero
   STATE.camx = mid(0, h.x-64, STATE.map_w*8-128)
   STATE.camy = mid(0, h.y-64, STATE.map_h*8-128)
@@ -101,7 +111,30 @@ function SYS.overworld.draw()
   local mx,my=flr(camx/8), flr(camy/8)
   map(mx, my, mx*8, my*8, 17, 17)
 
-  spr(STATE.hero.spr, STATE.hero.x, STATE.hero.y)
+  -- EDIT: walking animation (no separate left set; flip from right)
+  local h = STATE.hero
+
+  local frames_right = {4,5}
+  local frames_up    = {2,3}
+  local frames_down  = {0,1}
+
+  local anim
+  if h.dir == 2 then
+    anim = frames_up
+  elseif h.dir == 3 then
+    anim = frames_down
+  else
+    -- dir 0=left,1=right -> both use right set; left will flip
+    anim = frames_right
+  end
+
+  local idx = 1
+  if h.moving then
+    idx = 1 + (flr(h.anim_t/4) % 2) -- 1 or 2
+  end
+
+  local flip_x = (h.dir == 0) -- flip when facing left
+  spr(anim[idx], h.x, h.y, 1, 1, flip_x)
 
   camera()
   if SYS.ui and SYS.ui.hud then SYS.ui.hud(STATE.hero) end

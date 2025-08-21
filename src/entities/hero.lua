@@ -2,7 +2,7 @@ function SYS.entities.hero.init()
     STATE.hero = {
         x = 48,
         y = 48,
-        dir = 2,
+        dir=3,       -- 0=left,1=right,2=up,3=down
         moving = false,
         dx = 0,
         dy = 0,
@@ -15,7 +15,8 @@ function SYS.entities.hero.init()
         lvl = 1,
         xp = 0,
         g = 0,
-        spr = 1
+        spr = 0,
+        anim_t=0     -- timer for animation
     }
 
     STATE.hero.spells = { STATE.spells.absorb }
