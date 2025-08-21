@@ -18,8 +18,8 @@ function SYS.entities.enemies.init()
         {
             name = "dracky",
             spr = 17,
-            w = 2,
-            h = 2,
+            w = 1,
+            h = 1,
             hp = 12,
             atk = 4,
             def = 2,
