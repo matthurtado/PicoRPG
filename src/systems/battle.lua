@@ -278,14 +278,17 @@ function SYS.battle.draw()
     local baseline = 88
     local x = 64 - (w*8)/2
     local y = baseline - h*8
+
+    -- enemy shadow
+    local sw = flr(w*8*0.9)
+    local cx = x + (w*8)/2 
+    ovalfill(cx-sw/2, baseline - 2, cx+sw/2, baseline+1, 0)
+
     if e.charging and draw_outline then
       draw_outline(e.spr, x, y, 8, 2, w, h)
     else
       spr(e.spr, x, y, w, h)
     end
-    local sw = flr(w*8*0.9)
-    local cx = x + (w*8)/2
-    ovalfill(cx-sw/2, baseline, cx+sw/2, baseline+3, 0)
   end
 
   -- ===== top narration/message bar =====
