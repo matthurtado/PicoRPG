@@ -8,7 +8,6 @@ function SYS.overworld.init()
   STATE.steps = STATE.steps or 0
   STATE.enc_cool = STATE.enc_cool or 0
   STATE.enc_rate = STATE.enc_rate or 0.08
-  -- EDIT: ensure hero has an animation timer (safe if hero is created elsewhere)
   if STATE.hero then STATE.hero.anim_t = STATE.hero.anim_t or 0 end
 end
 
@@ -31,9 +30,68 @@ local function random_enemy()
   if SYS.util and SYS.util.deepcopy then
     return SYS.util.deepcopy(pick)
   else
-    -- shallow fallback (still ok for basic usage)
     local c={} for k,v in pairs(pick) do c[k]=v end
     return c
+  end
+end
+
+-- encounter screen FX (flash -> blinds -> hold -> battle)
+local function start_encounter_fx(enemy)
+  STATE.enc_fx = { enemy=enemy, t=0, phase="flash" }
+end
+
+local function encounter_fx_update()
+  local fx = STATE.enc_fx
+  if not fx then return end
+  fx.t += 1
+
+  local FLASH = 12    -- frames of white flash
+  local CLOSE = 24   -- frames to close blinds
+  local HOLD  = 6    -- frames to hold black
+
+  if fx.phase=="flash" then
+    if fx.t >= FLASH then fx.phase="close"; fx.t=0 end
+  elseif fx.phase=="close" then
+    if fx.t >= CLOSE then fx.phase="hold"; fx.t=0 end
+  elseif fx.phase=="hold" then
+    if fx.t >= HOLD then
+      local e = fx.enemy
+      STATE.enc_fx = nil
+      SYS.battle.start(e)
+    end
+  end
+end
+
+local function encounter_fx_draw()
+  local fx = STATE.enc_fx
+  if not fx then return end
+
+  camera()  -- screen space
+  clip()
+
+  local FLASH = 12
+  local CLOSE = 24
+
+  if fx.phase=="flash" then
+    local period = 6
+    local on = 3
+    if (fx.t % period) < on then rectfill(0,0,127,127,7) end
+    return
+  end
+
+  -- optional faint darken while closing
+  fillp(0b0011001100110011) rectfill(0,0,127,127,0) fillp()
+
+  -- venetian blinds closing to black (alternating direction per band)
+  local t = min(1, fx.t / CLOSE)
+  for r=0,15 do -- 16 rows * 8px = 128px
+    local y0 = r*8
+    local w  = flr(128*t)
+    if (r%2)==0 then
+      rectfill(0, y0, w-1, y0+7, 0)
+    else
+      rectfill(128-w, y0, 127, y0+7, 0)
+    end
   end
 end
 
@@ -43,7 +101,7 @@ local function try_encounter()
   local tx,ty=flr(h.x/8), flr(h.y/8)
   local id=mget(tx,ty)
   if fget(id,1) and rnd()<STATE.enc_rate then
-    SYS.battle.start(random_enemy())
+    start_encounter_fx(random_enemy())
     return
   end
   STATE.enc_cool=5
@@ -53,6 +111,12 @@ end
 function SYS.overworld.update()
   local h=STATE.hero
   STATE.enc_cool = max(0, (STATE.enc_cool or 0)-1)
+
+  -- if encounter FX is active, tick it and freeze movement
+  if STATE.enc_fx then
+    encounter_fx_update()
+    return
+  end
 
   -- start a new tile step only when aligned to grid
   if not h.moving and h.x%8==0 and h.y%8==0 then
@@ -90,10 +154,10 @@ function SYS.overworld.update()
     end
   end
 
-  -- EDIT: advance / reset walk animation clock
+  -- walk animation clock
   h.anim_t = h.anim_t or 0
   if h.moving then
-    h.anim_t = (h.anim_t + 1) % 8
+    h.anim_t = (h.anim_t + 1) % 8 -- spd=1 -> 8 frames/tile; flip every 4
   else
     h.anim_t = 0
   end
@@ -107,13 +171,12 @@ function SYS.overworld.draw()
   local camx,camy=flr(STATE.camx or 0), flr(STATE.camy or 0)
   camera(camx, camy)
 
-  -- draw enough map to cover screen
+  -- map
   local mx,my=flr(camx/8), flr(camy/8)
   map(mx, my, mx*8, my*8, 17, 17)
 
-  -- EDIT: walking animation (no separate left set; flip from right)
+  -- hero walking animation (left uses flipped right)
   local h = STATE.hero
-
   local frames_right = {4,5}
   local frames_up    = {2,3}
   local frames_down  = {0,1}
@@ -124,18 +187,19 @@ function SYS.overworld.draw()
   elseif h.dir == 3 then
     anim = frames_down
   else
-    -- dir 0=left,1=right -> both use right set; left will flip
-    anim = frames_right
+    anim = frames_right -- 0=left,1=right (flip left)
   end
 
   local idx = 1
   if h.moving then
-    idx = 1 + (flr(h.anim_t/4) % 2) -- 1 or 2
+    idx = 1 + (flr(h.anim_t/4) % 2)
   end
 
-  local flip_x = (h.dir == 0) -- flip when facing left
+  local flip_x = (h.dir == 0)
   spr(anim[idx], h.x, h.y, 1, 1, flip_x)
 
+  -- HUD, then overlay the encounter FX last so it covers everything
   camera()
   if SYS.ui and SYS.ui.hud then SYS.ui.hud(STATE.hero) end
+  encounter_fx_draw()
 end
