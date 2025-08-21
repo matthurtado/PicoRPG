@@ -270,7 +270,7 @@ function SYS.battle.draw()
 
   -- background
   rectfill(0,0,127,63,12)    -- sky
-  rectfill(0,64,127,95,3)    -- ground
+  rectfill(0,64,127,99,3)    -- ground
 
   -- enemy (grounded on a baseline)
   if e then
