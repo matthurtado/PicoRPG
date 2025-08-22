@@ -13,3 +13,4 @@
 
 # except
 !.vscode/tasks.json
+!spritesheet.png
