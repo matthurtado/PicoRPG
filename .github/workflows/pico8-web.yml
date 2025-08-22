@@ -34,11 +34,11 @@ jobs:
           echo "$PICO8_B64" | base64 -d > tools/pico8
           chmod +x tools/pico8
 
-            - name: Prepare output dirs
+      - name: Prepare output dirs
         run: |
           mkdir -p docs .pico8home tools
 
-      - name: Export HTML as docs/rpg.html from assets/base.p8 (ABSOLUTE PATH)
+      - name: Export HTML as docs/rpg.html from assets/base.p8
         env:
           PROJECT_DIR: ${{ github.workspace }}
         run: |
