@@ -20,7 +20,11 @@ jobs:
       - name: Install deps for PICO-8 runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y xz-utils libasound2 libxi6 libxcursor1 libxinerama1 libxrandr2 libgl1 libglu1-mesa
+          sudo apt-get install -y \
+            xz-utils xvfb \
+            libasound2t64 \
+            libxi6 libxcursor1 libxinerama1 libxrandr2 \
+            libgl1 libglu1-mesa
 
       - name: Restore PICO-8 binary from secret
         env:
