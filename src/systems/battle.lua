@@ -3,6 +3,71 @@ local function say(b, lines, next_state)
   b.msgs = lines; b.msg_i=1; b.log=lines[1]; b.next_state=next_state or "menu"; b.state="msg"
 end
 
+-- put this right after the local say(...) helper
+local function maybe_level_up()
+  local b = STATE.battle
+  local hero = STATE.hero
+  if not b or not hero then return end
+
+  -- defaults (safe even if already set)
+  hero.lvl = hero.lvl or 1
+  hero.xp  = hero.xp  or 0
+  hero.max_hp = hero.max_hp or hero.hp or 10
+  hero.hp     = hero.hp     or hero.max_hp
+  hero.max_mp = hero.max_mp or hero.mp or 0
+  hero.mp     = hero.mp     or hero.max_mp
+
+  -- simple XP curve: 10,15,20,25,...
+  local function xp_needed_for(level)
+    return 10 + (level-1)*5
+  end
+  hero.xp_to_next = hero.xp_to_next or xp_needed_for(hero.lvl)
+
+  local gained_xp = b.enemy and b.enemy.xp or 0
+  local gained_g  = b.enemy and b.enemy.g  or 0
+
+  local lines = { "victory! +"..gained_xp.."xp +"..gained_g.."g" }
+  local leveled=false
+
+  -- allow multiple level-ups if enough XP
+  while hero.xp >= hero.xp_to_next do
+    hero.xp -= hero.xp_to_next
+    hero.lvl += 1
+    leveled = true
+
+    -- stat gains (tweak to taste)
+    local hp_gain = 4
+    local mp_gain = (hero.max_mp and 1) or 0
+
+    hero.max_hp += hp_gain
+    hero.hp = hero.max_hp
+
+    if hero.max_mp then
+      hero.max_mp += mp_gain
+      hero.mp = hero.max_mp
+    end
+
+    if hero.atk then hero.atk += 1 end
+    if hero.def then hero.def += 1 end
+    if hero.mag then hero.mag += 1 end
+
+    add(lines, "level up! -> lv."..hero.lvl)
+    add(lines, "+"..hp_gain.." max hp"..(hero.max_mp and (", +"..mp_gain.." max mp") or ""))
+
+    if hero.atk then add(lines, "+1 atk") end
+    if hero.def then add(lines, "+1 def") end
+    if hero.mag then add(lines, "+1 mag") end
+
+    hero.xp_to_next = xp_needed_for(hero.lvl)
+  end
+
+  -- only override the default victory message if a level-up happened
+  if leveled then
+    say(b, lines, "end_battle")
+  end
+end
+
+
 function SYS.battle.start(enemy_tpl)
   local e = enemy_tpl
   if SYS.util and SYS.util.deepcopy then
