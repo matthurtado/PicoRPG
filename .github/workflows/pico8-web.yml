@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install deps for PICO-8 runtime
+      - name: Install deps for PICO-8 runtime (Ubuntu 24.04)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -39,22 +39,34 @@ jobs:
           mkdir -p docs .pico8home tools
 
       - name: Export HTML as docs/rpg.html from assets/base.p8
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
         run: |
           xvfb-run -a ./tools/pico8 \
-            -root_path "$PWD" \
-            -home "$PWD/.pico8home" \
+            -root_path "$PROJECT_DIR" \
+            -home "$PROJECT_DIR/.pico8home" \
             -export docs/rpg.html \
             assets/base.p8
 
       - name: Save PNG cart image as docs/rpg.png
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
         run: |
-          # Save a .p8.png first (PICO-8's native cart PNG), then rename to rpg.png
-          printf "load assets/base.p8\nsave docs/rpg.p8.png\nshutdown\n" > tools/console.p8l
+          # absolute path prevents path resolution issues under -x
+          SCRIPT="$PROJECT_DIR/tools/console.p8l"
+          CARTPNG="$PROJECT_DIR/docs/rpg.p8.png"
+          {
+            echo "load assets/base.p8"
+            echo "save $CARTPNG"
+            echo "shutdown"
+          } > "$SCRIPT"
           xvfb-run -a ./tools/pico8 \
-            -root_path "$PWD" \
-            -home "$PWD/.pico8home" \
-            -x tools/console.p8l
-          mv -f docs/rpg.p8.png docs/rpg.png
+            -root_path "$PROJECT_DIR" \
+            -home "$PROJECT_DIR/.pico8home" \
+            -x "$SCRIPT"
+          ls -la docs
+          # keep a simple name for README thumbnails too
+          cp -f docs/rpg.p8.png docs/rpg.png || true
 
       - name: Commit docs/ back to master
         run: |
