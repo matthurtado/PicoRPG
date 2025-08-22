@@ -12,6 +12,42 @@ function SYS.overworld.init()
 end
 
 -- helpers
+-- door helpers ---------------------------------------------------------------
+local function find_door_dest(tx, ty)
+  -- 1) exact cell match
+  local by_cell = STATE.doors and STATE.doors.by_cell
+  if by_cell then
+    local d = by_cell[tx..","..ty]
+    if d then return d.tx, d.ty end
+  end
+
+  -- 2) by tile id
+  local by_tile = STATE.doors and STATE.doors.by_tile
+  if by_tile then
+    local id = mget(tx,ty)
+    local d = by_tile[id] or by_tile[tostr(id)] -- tolerate string-keyed maps
+    if d then return d.tx, d.ty end
+  end
+
+  -- 3) fallback default (optional)
+  local def = STATE.default_interior
+  if def then return def.tx, def.ty end
+  return nil
+end
+
+
+local function teleport_to_tile(tx, ty)
+  local h=STATE.hero
+  local px, py = tx*8, ty*8
+  h.x, h.y, h.tx, h.ty = px, py, px, py
+  h.moving=false
+  -- center camera on hero
+  STATE.camx = mid(0, h.x-64, STATE.map_w*8-128)
+  STATE.camy = mid(0, h.y-64, STATE.map_h*8-128)
+  -- brief cooldown so we don't roll encounters right away
+  STATE.enc_cool = 10
+end
+
 local function is_blocked(px,py)
   local tx,ty=flr(px/8), flr(py/8)
   return fget(mget(tx,ty),0) -- Flag 0 = solid
@@ -80,6 +116,7 @@ local function encounter_fx_draw()
   end
 
   -- optional faint darken while closing
+  -- What is this horrible magic number?
   fillp(0b0011001100110011) rectfill(0,0,127,127,0) fillp()
 
   -- venetian blinds closing to black (alternating direction per band)
@@ -120,6 +157,7 @@ function SYS.overworld.update()
 
   -- start a new tile step only when aligned to grid
   if not h.moving and h.x%8==0 and h.y%8==0 then
+    
     local dx,dy=0,0
     if SYS.input.left()  then dx=-1; h.dir=0 end
     if SYS.input.right() then dx= 1; h.dir=1 end
@@ -140,20 +178,37 @@ function SYS.overworld.update()
   end
 
   if h.moving then
-    h.x += h.dx
-    h.y += h.dy
-    if (h.dx>0 and h.x>=h.tx) or (h.dx<0 and h.x<=h.tx) then h.x=h.tx end
-    if (h.dy>0 and h.y>=h.ty) or (h.dy<0 and h.y<=h.ty) then h.y=h.ty end
-    if h.x==h.tx and h.y==h.ty then
-      h.moving=false
-      STATE.steps += 1
-      -- only roll encounters on tiles marked "not safe" (flag 1 set)
-      if not is_safe(h.x, h.y) then
-        try_encounter()
+  h.x += h.dx
+  h.y += h.dy
+  if (h.dx>0 and h.x>=h.tx) or (h.dx<0 and h.x<=h.tx) then h.x=h.tx end
+  if (h.dy>0 and h.y>=h.ty) or (h.dy<0 and h.y<=h.ty) then h.y=h.ty end
+  if h.x==h.tx and h.y==h.ty then
+    h.moving=false
+    STATE.steps += 1
+
+    -- we just landed on a tile: compute tile coords/id once
+    local tx,ty = flr(h.x/8), flr(h.y/8)
+    local id = mget(tx,ty)
+
+    -- door check first
+    if fget(id,2) then
+      local dx,dy = find_door_dest(tx,ty)
+      
+      if dx then
+        teleport_to_tile(dx,dy)
+        return -- stop here this frame (skip encounter roll)
       end
+    else
+      -- optional: clear door debug when not on a door
+      -- STATE.debug_msg = nil
+    end
+
+    -- only roll encounters on tiles marked "not safe" (flag 1 set)
+    if not is_safe(h.x, h.y) then
+      try_encounter()
     end
   end
-
+end
   -- walk animation clock
   h.anim_t = h.anim_t or 0
   if h.moving then

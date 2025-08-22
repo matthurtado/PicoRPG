@@ -9,6 +9,7 @@ __lua__
 #include ../src/entities/hero.lua
 #include ../src/entities/enemies.lua
 #include ../src/systems/menu.lua
+#include ../src/systems/doors.lua
 #include ../src/systems/overworld.lua
 #include ../src/systems/battle.lua
 #include ../src/utils/al_gore_ithms.lua
