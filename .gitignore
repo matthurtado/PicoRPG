@@ -1,8 +1,8 @@
 # ignore exports
-*.png
-*.html
-*.js
-*.wasm
+./*.png
+./*.html
+./*.js
+./*.wasm
 
 # ignore build
 /build/
