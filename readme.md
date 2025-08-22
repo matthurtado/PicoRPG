@@ -2,6 +2,11 @@
 
 A mini-RPG built in [PICO-8](https://www.lexaloffle.com/pico-8.php).
 
+[![▶ Play the game](https://img.shields.io/badge/Play-rpg.html-blue)](https://matthurtado.github.io/PicoRPG/rpg.html)
+
+![Cartridge](docs/rpg.png)
+
+
 ## 🎮 About
 
 **PicoRPG** is a retro-style role-playing game

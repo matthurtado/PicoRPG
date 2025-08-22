@@ -1,0 +1,69 @@
+name: Build PICO-8 HTML + PNG (base.p8)
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # avoid loops when this workflow commits docs/
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deps for PICO-8 runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xz-utils libasound2 libxi6 libxcursor1 libxinerama1 libxrandr2 libgl1 libglu1-mesa
+
+      - name: Restore PICO-8 binary from secret
+        env:
+          PICO8_B64: ${{ secrets.PICO8_LINUX64_BASE64 }}
+        run: |
+          mkdir -p tools
+          echo "$PICO8_B64" | base64 -d > tools/pico8
+          chmod +x tools/pico8
+
+      - name: Prepare output dirs
+        run: |
+          mkdir -p docs .pico8home tools
+
+      - name: Export HTML as docs/rpg.html from assets/base.p8
+        run: |
+          xvfb-run -a ./tools/pico8 \
+            -root_path "$PWD" \
+            -home "$PWD/.pico8home" \
+            -export docs/rpg.html \
+            assets/base.p8
+
+      - name: Save PNG cart image as docs/rpg.png
+        run: |
+          # Save a .p8.png first (PICO-8's native cart PNG), then rename to rpg.png
+          printf "load assets/base.p8\nsave docs/rpg.p8.png\nshutdown\n" > tools/console.p8l
+          xvfb-run -a ./tools/pico8 \
+            -root_path "$PWD" \
+            -home "$PWD/.pico8home" \
+            -x tools/console.p8l
+          mv -f docs/rpg.p8.png docs/rpg.png
+
+      - name: Commit docs/ back to master
+        run: |
+          if [ -n "$(git status --porcelain docs)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs
+            git commit -m "chore: export PICO-8 rpg.html + rpg.png [skip ci]"
+            git push
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pico8-rpg-build
+          path: docs
