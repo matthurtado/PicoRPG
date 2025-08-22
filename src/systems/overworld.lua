@@ -14,37 +14,35 @@ end
 -- helpers
 -- door helpers ---------------------------------------------------------------
 local function find_door_dest(tx, ty)
-  -- 1) exact cell match
+  -- exact cell override
   local by_cell = STATE.doors and STATE.doors.by_cell
   if by_cell then
     local d = by_cell[tx..","..ty]
-    if d then return d.tx, d.ty end
+    if d then return d.tx, d.ty, d.room end
   end
 
-  -- 2) by tile id
+  -- by tile id
   local by_tile = STATE.doors and STATE.doors.by_tile
   if by_tile then
     local id = mget(tx,ty)
-    local d = by_tile[id] or by_tile[tostr(id)] -- tolerate string-keyed maps
-    if d then return d.tx, d.ty end
+    local d = by_tile[id] or by_tile[tostr(id)]
+    if d then return d.tx, d.ty, d.room end
   end
 
-  -- 3) fallback default (optional)
-  local def = STATE.default_interior
-  if def then return def.tx, def.ty end
+  -- default (optional)
+  if STATE.default_interior then
+    local d = STATE.default_interior
+    return d.tx, d.ty, d.room
+  end
   return nil
 end
 
-
-local function teleport_to_tile(tx, ty)
+local function teleport_to_tile(tx, ty, room)
   local h=STATE.hero
   local px, py = tx*8, ty*8
-  h.x, h.y, h.tx, h.ty = px, py, px, py
+  h.x,h.y,h.tx,h.ty = px,py,px,py
   h.moving=false
-  -- center camera on hero
-  STATE.camx = mid(0, h.x-64, STATE.map_w*8-128)
-  STATE.camy = mid(0, h.y-64, STATE.map_h*8-128)
-  -- brief cooldown so we don't roll encounters right away
+  STATE.room = room or nil   -- << store active room when inside; nil when outside
   STATE.enc_cool = 10
 end
 
@@ -144,6 +142,35 @@ local function try_encounter()
   STATE.enc_cool=5
 end
 
+local function set_camera_to_room_or_world()
+  local h=STATE.hero
+  if STATE.room then
+    local rx = STATE.room.x*8
+    local ry = STATE.room.y*8
+    local rw = STATE.room.w*8
+    local rh = STATE.room.h*8
+    local vw, vh = 128, 128
+
+    -- X axis
+    if rw <= vw then
+      -- room narrower than screen: center it
+      STATE.camx = flr(rx + rw/2 - vw/2)
+    else
+      STATE.camx = mid(rx, h.x-64, rx + rw - vw)
+    end
+    -- Y axis
+    if rh <= vh then
+      STATE.camy = flr(ry + rh/2 - vh/2)
+    else
+      STATE.camy = mid(ry, h.y-64, ry + rh - vh)
+    end
+  else
+    -- outside: clamp to full world
+    STATE.camx = mid(0, h.x-64, STATE.map_w*8-128)
+    STATE.camy = mid(0, h.y-64, STATE.map_h*8-128)
+  end
+end
+
 -- update/draw
 function SYS.overworld.update()
   local h=STATE.hero
@@ -191,18 +218,15 @@ function SYS.overworld.update()
     local id = mget(tx,ty)
 
     -- door check first
+    local tx,ty = flr(h.x/8), flr(h.y/8)
+    local id = mget(tx,ty)
     if fget(id,2) then
-      local dx,dy = find_door_dest(tx,ty)
-      
+      local dx,dy,room = find_door_dest(tx,ty)
       if dx then
-        teleport_to_tile(dx,dy)
-        return -- stop here this frame (skip encounter roll)
+        teleport_to_tile(dx,dy,room)
+        return
       end
-    else
-      -- optional: clear door debug when not on a door
-      -- STATE.debug_msg = nil
     end
-
     -- only roll encounters on tiles marked "not safe" (flag 1 set)
     if not is_safe(h.x, h.y) then
       try_encounter()
@@ -216,45 +240,41 @@ end
   else
     h.anim_t = 0
   end
-
-  -- keep camera on hero
-  STATE.camx = mid(0, h.x-64, STATE.map_w*8-128)
-  STATE.camy = mid(0, h.y-64, STATE.map_h*8-128)
+  set_camera_to_room_or_world()
 end
 
 function SYS.overworld.draw()
   local camx,camy=flr(STATE.camx or 0), flr(STATE.camy or 0)
   camera(camx, camy)
+  cls(0)
 
-  -- map
+  -- if inside a room, only draw that rectangle
+  if STATE.room then
+    local rx = STATE.room.x*8 - camx
+    local ry = STATE.room.y*8 - camy
+    local rw = STATE.room.w*8
+    local rh = STATE.room.h*8
+    clip(rx, ry, rw, rh)
+  end
+
+  -- draw map for the camera view
   local mx,my=flr(camx/8), flr(camy/8)
   map(mx, my, mx*8, my*8, 17, 17)
 
-  -- hero walking animation (left uses flipped right)
+  -- hero
   local h = STATE.hero
   local frames_right = {4,5}
   local frames_up    = {2,3}
   local frames_down  = {0,1}
-
-  local anim
-  if h.dir == 2 then
-    anim = frames_up
-  elseif h.dir == 3 then
-    anim = frames_down
-  else
-    anim = frames_right -- 0=left,1=right (flip left)
-  end
-
-  local idx = 1
-  if h.moving then
-    idx = 1 + (flr(h.anim_t/4) % 2)
-  end
-
+  local anim = (h.dir==2) and frames_up or (h.dir==3) and frames_down or frames_right
+  local idx = h.moving and (1 + (flr(h.anim_t/4) % 2)) or 1
   local flip_x = (h.dir == 0)
   spr(anim[idx], h.x, h.y, 1, 1, flip_x)
 
-  -- HUD, then overlay the encounter FX last so it covers everything
+  -- reset clip before HUD or effects
+  clip()
   camera()
   if SYS.ui and SYS.ui.hud then SYS.ui.hud(STATE.hero) end
   encounter_fx_draw()
 end
+
