@@ -1,72 +1,44 @@
-name: Build PICO-8 HTML + PNG (base.p8)
-
-on:
-  push:
-    branches: [master]
-
-permissions:
-  contents: write
-
-jobs:
-  build:
-    # avoid loops when this workflow commits docs/
-    if: ${{ github.actor != 'github-actions[bot]' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install deps for PICO-8 runtime (Ubuntu 24.04)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            xz-utils xvfb \
-            libasound2t64 \
-            libxi6 libxcursor1 libxinerama1 libxrandr2 \
-            libgl1 libglu1-mesa
-
-      - name: Restore PICO-8 binary from secret
-        env:
-          PICO8_B64: ${{ secrets.PICO8_LINUX64_BASE64 }}
-        run: |
-          mkdir -p tools
-          echo "$PICO8_B64" | base64 -d > tools/pico8
-          chmod +x tools/pico8
-
       - name: Prepare output dirs
         run: |
           mkdir -p docs .pico8home tools
 
-      - name: Export HTML as docs/rpg.html from assets/base.p8
+      - name: Export HTML as docs/rpg.html from assets/base.p8 (ABSOLUTE PATH)
         env:
           PROJECT_DIR: ${{ github.workspace }}
         run: |
+          HTML_OUT="$PROJECT_DIR/docs/rpg.html"
+          CART_IN="$PROJECT_DIR/assets/base.p8"
           xvfb-run -a ./tools/pico8 \
             -root_path "$PROJECT_DIR" \
             -home "$PROJECT_DIR/.pico8home" \
-            -export docs/rpg.html \
-            assets/base.p8
+            -export "$HTML_OUT" \
+            "$CART_IN"
 
-      - name: Save PNG cart image as docs/rpg.png
+      - name: Save PNG cart image as docs/rpg.png (via console script, ABSOLUTE PATH)
         env:
           PROJECT_DIR: ${{ github.workspace }}
         run: |
-          # absolute path prevents path resolution issues under -x
           SCRIPT="$PROJECT_DIR/tools/console.p8l"
-          CARTPNG="$PROJECT_DIR/docs/rpg.p8.png"
+          CART_IN="$PROJECT_DIR/assets/base.p8"
+          P8PNG="$PROJECT_DIR/docs/rpg.p8.png"
           {
-            echo "load assets/base.p8"
-            echo "save $CARTPNG"
+            echo "load $CART_IN"
+            echo "save $P8PNG"
             echo "shutdown"
           } > "$SCRIPT"
           xvfb-run -a ./tools/pico8 \
             -root_path "$PROJECT_DIR" \
             -home "$PROJECT_DIR/.pico8home" \
             -x "$SCRIPT"
-          ls -la docs
-          # keep a simple name for README thumbnails too
-          cp -f docs/rpg.p8.png docs/rpg.png || true
+          # simple name for README
+          cp -f "$P8PNG" "$PROJECT_DIR/docs/rpg.png" || true
+          echo "== docs contents =="
+          ls -la "$PROJECT_DIR/docs"
+
+      - name: Verify outputs exist (fail fast with a clear message)
+        run: |
+          test -f docs/rpg.html || (echo "ERROR: docs/rpg.html missing" && exit 1)
+          test -f docs/rpg.png  || (echo "ERROR: docs/rpg.png missing"  && exit 1)
 
       - name: Commit docs/ back to master
         run: |
@@ -82,4 +54,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pico8-rpg-build
-          path: docs
+          path: docs/**
+          if-no-files-found: error
