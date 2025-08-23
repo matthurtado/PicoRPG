@@ -23,5 +23,40 @@ function SYS.ui.hud(hero)
   if STATE.debug_msg then
     print(STATE.debug_msg, 2, 118, 8)  -- bottom left, color 8 (red)
   end
-  
+end
+-- simple message pager usable from overworld, battle, etc.
+function SYS.ui.say(lines, on_end)
+  STATE.msg = {
+    lines = type(lines)=="table" and lines or {lines},
+    i = 1,
+    on_end = on_end
+  }
+end
+
+function SYS.ui.update_msg()
+  local m = STATE.msg
+  if not m then return false end
+  if SYS.input.confirm() then
+    m.i += 1
+    if m.i > #m.lines then
+      local cb = m.on_end
+      STATE.msg = nil
+      if cb then cb() end
+    end
+  end
+  return true -- message is active, caller should early-return
+end
+
+function SYS.ui.draw_msg()
+  local m = STATE.msg
+  if not m then return end
+  camera()      -- (0,0)
+  clip()        -- clear any world clip
+  pal() palt()  -- reset palette / transparency
+  fillp()       -- clear any dither/pattern
+
+  local box_y = 100
+  rectfill(0, box_y, 127, 127, 1)  -- dark blue box
+  rect(0, box_y, 127, 127, 0)      -- border
+  print(m.lines[m.i] or "", 6, box_y+6, 7)
 end

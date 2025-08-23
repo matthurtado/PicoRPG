@@ -8,6 +8,7 @@ __lua__
 #include ../src/entities/spells.lua
 #include ../src/entities/hero.lua
 #include ../src/entities/enemies.lua
+#include ../src/entities/npcs.lua
 #include ../src/systems/menu.lua
 #include ../src/systems/doors.lua
 #include ../src/systems/overworld.lua

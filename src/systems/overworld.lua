@@ -175,6 +175,11 @@ end
 function SYS.overworld.update()
   local h=STATE.hero
   STATE.enc_cool = max(0, (STATE.enc_cool or 0)-1)
+  -- if a message is up, page it and freeze gameplay
+  if STATE.msg then
+    SYS.ui.update_msg()
+    return
+  end
 
   -- if encounter FX is active, tick it and freeze movement
   if STATE.enc_fx then
@@ -184,7 +189,11 @@ function SYS.overworld.update()
 
   -- start a new tile step only when aligned to grid
   if not h.moving and h.x%8==0 and h.y%8==0 then
-    
+    -- interact first (consumes the frame if it fires)
+    if SYS.input.confirm() and SYS.npcs.try_interact() then
+      return
+    end
+
     local dx,dy=0,0
     if SYS.input.left()  then dx=-1; h.dir=0 end
     if SYS.input.right() then dx= 1; h.dir=1 end
@@ -194,7 +203,7 @@ function SYS.overworld.update()
     if dx~=0 or dy~=0 then
       local nx=h.x+dx*8
       local ny=h.y+dy*8
-      if not is_blocked(nx,ny) then
+      if not is_blocked(nx,ny) and not SYS.npcs.blocking_at(nx,ny) then
         h.moving=true
         h.dx=dx*(h.spd or 1)
         h.dy=dy*(h.spd or 1)
@@ -260,7 +269,8 @@ function SYS.overworld.draw()
   -- draw map for the camera view
   local mx,my=flr(camx/8), flr(camy/8)
   map(mx, my, mx*8, my*8, 17, 17)
-
+  -- NPCs
+  SYS.npcs.draw()
   -- hero
   local h = STATE.hero
   local frames_right = {4,5}
@@ -274,6 +284,9 @@ function SYS.overworld.draw()
   -- reset clip before HUD or effects
   clip()
   camera()
+    -- MESSAGE BOX (now draws on top, unclipped)
+  SYS.ui.draw_msg()
+  
   if SYS.ui and SYS.ui.hud then SYS.ui.hud(STATE.hero) end
   encounter_fx_draw()
 end
